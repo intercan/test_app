@@ -1,0 +1,287 @@
+<!DOCTYPE html> 
+<html> 
+    <head> 
+    <title>App</title> 
+    <meta name="viewport" content="width=device-width, initial-scale=1"> 
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <link rel="stylesheet" href="jquery.mobile-1.1.1.min.css" />
+    <script src="jquery-1.8.2.min.js"></script>
+    <script src="jquery.mobile-1.1.1.min.js"></script>
+</head> 
+<body>
+    <script>
+        $(document).ready(function()
+            {
+                console.log("start")
+                //load recipes from the local storage
+                var recipes
+                
+                if(localStorage.getItem('recipes'))
+                {
+                    recipes = JSON.parse(localStorage.getItem('recipes'));
+                }
+                else
+                {
+                    // if none, then create them ans save them to the localStorage
+                    recipes = [
+                        {
+                            id: 1,
+                            name: 'Stuffed Tomatoes',
+                            time: 5,
+                            ingredients: '1kg Tomatoes, lettuce, oil',
+                            preparation: 'Cook, mix and eat.',
+                            type: 'Main Course'
+                        },
+                        {
+                            id: 2,
+                            name: 'Fried Chicken',
+                            time: 15,
+                            ingredients: '1kg chicken, herbs',
+                            preparation: 'Cook in the grill until crispy',
+                            type: 'Main Course'
+                            
+                        },
+                        {
+                            id: 3,
+                            name: 'Cheese Cake',
+                            time: 45,
+                            ingredients: 'cheese, butter, sugar, salt',
+                            preparation: 'Cook, mix and eat.',
+                            type: 'Desert'
+ 
+                        },
+                        
+                    ];
+                    
+                    // offline saving
+                    localStorage.setItem('recipes', JSON.stringify(recipes));
+                }
+                
+                var entityMap = {
+                    "&": "&amp;",
+                    "<": "&lt;",
+                    ">": "&gt;",
+                    '"': "&quot;",
+                    "'": "&#39;",
+                    "/": "&#x2F;"
+                    
+                };
+                
+                var escapeHTML = function(string)
+                {
+                    return String(string).replace(/[&<>"'\/]/g, function(s)
+                    {
+                        return entityMap[s];
+                    });
+                }
+                
+                //show recipe listing on the homepage
+                var showRecipes = function()
+                {
+                    //erase existing content
+                    $('#recipes_list').html('');
+                    
+                    //insert each recipe
+                    for (var i=0; i<recipes.length; i++)
+                    {
+                        addRecipe(recipes[i]);
+                    }
+                }
+                
+                // add an element to the listview
+                var addRecipe = function(recipeData)
+                {
+                    //HTML content of one list element
+                    var listElementHTML = '<li><a class="recipe_item" href="#item'+ escapeHTML(recipeData.id) +'">'+escapeHTML(recipeData.name)+'</a></li>';
+                    
+                    //console.log(listElementHTML);
+                    //append the HTML cod to the listwiew
+                    $('#recipes_list').append(listElementHTML);
+                    
+                    //HTML to add a recipe page
+                    var recipePageHTML ='<div id="item'+escapeHTML(recipeData.id) +'" data-role="page">' +
+                    
+                        '<div data-role="header">' +
+                            '<h1>'+escapeHTML(recipeData.name) +'-('+escapeHTML(recipeData.type) +')</h1>' +
+                            '<a href="#" data-rel="back">Back</a>'+
+                            '<a href="#delete' + escapeHTML(recipeData.id)+'" data-icon = "delete" class="ui-btn-right delete_btn">Delete</a>' +
+                        '</div>' +
+                        '<div data-role="collapsible" data-collapsed="false" data-theme="b">' +
+                            '<h3>Ingredients</h3>'+
+                            escapeHTML(recipeData.ingredients) +
+                        '</div>'+
+                        '<div data-role="collapsible" data-collapsed="false" data-theme="b">' +
+                            '<h3>Preparation</h3>'+
+                            escapeHTML(recipeData.preparation) + '<br/><br/><strong>Cooking Time: '+ escapeHTML(recipeData.time) + ' minutes</strong>' +
+                        '</div>'+
+                        
+                        '<!--  Remove the footer '+
+                                        
+                        '<div data-role="footer" data-position="fixed">' +
+                            '<div data-role="navbar" data-iconpos="bottom">' +
+                                '<ul>'+
+                                    '<li><a href="#homepage" data-icon="home">Home</a></li>'+
+                                    '<li><a href="#" data-icon="info">About</a></li>' +
+                                '</ul>'+
+                            '</div>'+
+                        '</div>'+
+                        '-->' +
+                    '</div>'+
+                    
+                    console.log(recipePageHTML);
+                    //Add the page HTML to the end of the body
+                    $('body').append(recipePageHTML);
+                    
+                    //refresh the listview(JQuery Mobile method)
+                    $('#recipes_list').listview("refresh");
+                };
+                
+                //register event to delete recipe when Delete button clicked
+                $(".delete_btn").live("click tap", function(e)
+                {
+                    e.stopPropagation();
+                    var id=$(this).attr("href").substring(7);
+                    
+                    //search for the position of the selected recipe
+                    var index;
+                    for (var i=0; i<recipes.length; i++)
+                    {
+                        if (recipes[i].id == id)
+                        {
+                            index = i;
+                            break;    
+                        }
+                        
+                    }
+                    
+                    //remove from array
+                    recipes.splice(index,1);
+                    
+                    //save offline
+                    localStorage.setItem('recipes', JSON.stringify(recipes));
+                    
+                    //update homepage
+                    showRecipes();
+                    $.mobile.changePage("#homepage");
+                    
+                });
+                
+                $("#form_new_recipe").bind("submit", function(e)
+                {
+                    console.log("newRecipe");
+                    var newRecipe =
+                    {
+                        
+                        id: recipes.length + 1,
+                        name: escapeHTML($("#recipe_name").val()),
+                        time: escapeHTML($("#recipe_time").val()),
+                        ingredients: escapeHTML($("#recipe_ingredients").val()),
+                        preparation: escapeHTML($("#recipe_preparation").val()),
+                        type: escapeHTML($("#recipe_type option:selected").val()),
+                     };
+                     console.log(newRecipe);
+                     //put recipe in array
+                     recipes.push(newRecipe);
+                     console.log(recipes);
+                     //add recipe page
+                     addRecipe(newRecipe);
+                     
+                     //save recipe to localStorage
+                     localStorage.setItem("recipes",JSON.stringify(recipes));
+                     
+                     $.mobile.changePage("#homepage");
+                     return false;
+                });
+                
+                //execute function to show recipes
+                showRecipes();
+            
+            });
+    </script>
+    
+<div id="homepage" data-role="page">
+
+    <div data-role="header">
+        <h1>Recipies</h1>                
+    </div>
+
+    <div data-role="content">
+        <a href="#add_recipe" data-role="button" data-theme="b">Add Recipe</a>
+        <div style="margin: 20px"></div>
+        <ul id="recipes_list" data-role="listview" data-filter="true">
+ 
+        </ul>
+    </div>
+    
+    <div data-role="footer" data-position="fixed">
+        <div data-role="navbar" data-iconpos="bottom">
+            <ul>
+                <li><a href="#" data-icon="home">Home</a></li>
+                <li><a href="#about_page" data-icon="info">About</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+    
+
+
+<!-- --------------Seems that this has to be at the end to work, Experiment ------------------------------- -->
+
+<div id="about_page" data-role="page">
+
+    <div data-role="header">
+        <h1>RicasRecipies</h1>                
+    </div>
+
+    <div data-role="content">
+        This app was built as part of a great course which I'll recommend to all of my friends :)
+    </div>
+    
+    <div data-role="footer" data-position="fixed">
+        <div data-role="navbar" data-iconpos="bottom">
+            <ul>
+                <li><a href="#homepage" data-icon="home">Home</a></li>
+                <li><a href="#" data-icon="info">About</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div id="add_recipe" data-role="page">
+
+    <div data-role="header">
+        <h1>Add Recipe</h1>
+        <a href="#" data-rel="back">Back</a>
+    </div>
+
+    <div data-role="content">
+        <!-- -------Add Page content Here------------- -->
+            <form id="form_new_recipe">
+                <input type="text" name="recipe_name" id="recipe_name" value="" placeholder="Name" required />
+                <select name="recipe_type" id="recipe_type" data-native-menu="false">
+                    <option value="Desert">Desert</option>
+                    <option value="Salad">Salad</option>
+                    <option value="Main Course">Main Course</option>
+                </select>
+                <label for="recipe_time">Cooking time</label>
+                <input type="range" name="recipe_time" id="recipe_time" value="30" min="0" max="120" step="5" />
+                <textarea name="recipe_ingredients" id="recipe_ingredients" placeholder="Ingredients"></textarea>
+                <textarea name="recipe_preparation" id="recipe_preparation" placeholder="Preparation"></textarea>
+                <input type="submit" value="Save" data-theme="b" />
+            </form>
+        <!-- -------Add Page content Here------------- -->
+    </div>
+    
+    <div data-role="footer" data-position="fixed">
+        <div data-role="navbar" data-iconpos="bottom">
+            <ul>
+                <li><a href="#homepage" data-icon="home">Home</a></li>
+                <li><a href="#about_page" data-icon="info">About</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+
+</body>
+</html>
